@@ -1,5 +1,6 @@
 export interface Job {
-  id: string;
+  PartitionKey: string;
+  RowKey: string;
   name: string;
   description: string;
   status: string;

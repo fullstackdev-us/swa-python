@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Job, JobFormData } from "./types";
 import { jobService } from "./services/jobService";
 import { storageService } from "./services/storageService";
@@ -17,7 +17,6 @@ import {
   Upload,
 } from "antd";
 import { PlusOutlined, UploadOutlined } from "@ant-design/icons";
-import { Field, Formik, type FormikHelpers, type FormikProps } from "formik";
 
 const FILE_CONTAINER_NAME = "files";
 
@@ -27,7 +26,7 @@ function App() {
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showJobModal, setShowJobModal] = useState<boolean>(false);
-  const jobFormRef = useRef<FormikProps<JobFormData>>(null);
+  const [form] = Form.useForm();
 
   function handleCreateJob() {
     setShowJobModal(true);
@@ -69,26 +68,29 @@ function App() {
     }
   }
 
-  async function handleSubmitJob(
-    values: JobFormData,
-    { resetForm }: FormikHelpers<JobFormData>
-  ) {
+  // Remove Formik references and update handleSubmitJob to work with Ant Design Form
+  async function handleSubmitJob(values: JobFormData) {
     try {
       setIsLoading(true);
       const payload = {
         ...targetJob,
         ...values,
       } as Job;
-      if (targetJob?.id) {
-        const updatedJob = await jobService.updateJob(targetJob?.id, payload);
-        const otherJobs = jobs.filter((j) => j.id !== targetJob.id);
+      if (targetJob?.PartitionKey) {
+        const updatedJob = await jobService.updateJob(
+          targetJob?.PartitionKey,
+          payload
+        );
+        const otherJobs = jobs.filter(
+          (j) => j.PartitionKey !== targetJob.PartitionKey
+        );
         setJobs([...otherJobs, updatedJob]);
       } else {
         const newJob = await jobService.createJob(payload);
         setJobs([...jobs, newJob]);
       }
-      resetForm();
       setShowJobModal(false);
+      setTargetJob(undefined);
     } catch (error) {
       console.error("Error saving job:", error);
       message.error("Failed to save job");
@@ -174,7 +176,11 @@ function App() {
               }
             }}
           >
-            <Button type="primary" icon={<UploadOutlined />}></Button>
+            <Button
+              type="primary"
+              icon={<UploadOutlined />}
+              style={{ marginTop: "1rem" }}
+            ></Button>
           </Upload>
         </Tooltip>
       </Card>
@@ -196,7 +202,7 @@ function App() {
               <Skeleton avatar title={false} loading={isLoading} active>
                 <List.Item.Meta
                   avatar={<Avatar src={"https://placekittens.com/50/50"} />}
-                  title={`${job.name} (${job.id})`}
+                  title={`${job.name} (${job.RowKey})`}
                   description=""
                 />
                 <div>Status: {job.status}</div>
@@ -209,6 +215,7 @@ function App() {
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleCreateJob}
+            style={{ marginTop: "1rem" }}
           ></Button>
         </Tooltip>
       </Card>
@@ -219,10 +226,65 @@ function App() {
         onCancel={() => {
           setShowJobModal(false);
           setTargetJob(undefined);
-          jobFormRef.current?.resetForm();
+          form.resetFields();
         }}
         footer={null}
-      ></Modal>
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={targetJob || { name: "", description: "", status: "" }}
+          onFinish={async (values) => {
+            await handleSubmitJob(values);
+            form.resetFields();
+          }}
+        >
+          <Form.Item
+            label="Name"
+            name="name"
+            rules={[{ required: true, message: "Please enter the job name" }]}
+          >
+            <Input placeholder="Enter job name" />
+          </Form.Item>
+          <Form.Item
+            label="Description"
+            name="description"
+            rules={[
+              {
+                required: true,
+                message: "Please enter the job description",
+              },
+            ]}
+          >
+            <Input.TextArea placeholder="Enter job description" />
+          </Form.Item>
+          <Form.Item
+            label="Status"
+            name="status"
+            rules={[{ required: true, message: "Please select a status" }]}
+          >
+            <Select placeholder="Select status">
+              <Select.Option value="pending">Pending</Select.Option>
+              <Select.Option value="running">Running</Select.Option>
+              <Select.Option value="completed">Completed</Select.Option>
+              <Select.Option value="failed">Failed</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={isLoading}
+              style={{ marginRight: 8 }}
+            >
+              {targetJob ? "Update Job" : "Create Job"}
+            </Button>
+            <Button onClick={() => setShowJobModal(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
