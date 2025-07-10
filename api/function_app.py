@@ -46,7 +46,7 @@ def list_files(req: func.HttpRequest) -> func.HttpResponse:
     files = storage_client.list_files(container_name)
     if files:
         return func.HttpResponse(json.dumps(files), status_code=200)
-    return func.HttpResponse("Failed to list files.", status_code=500)
+    return func.HttpResponse(status_code=204)
 
 # Jobs
 

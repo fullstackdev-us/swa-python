@@ -171,7 +171,10 @@ function App() {
         <Tooltip title="Upload a new file" placement="right">
           <Upload
             name="file"
-            action={"/api/storage"}
+            action={(file: File) =>
+              `/api/storage?container_name=${FILE_CONTAINER_NAME}&file_name=${file.name}`
+            }
+            showUploadList={false}
             onChange={(info) => {
               if (info.file.status !== "uploading") {
                 console.log(info.file, info.fileList);

@@ -33,7 +33,6 @@ class Storage:
     
     def upload_file(self, container_name, fileName, fileBytes):
         try:
-            self.blob_service_client.create_container(container_name)
             self.blob_service_client.get_blob_client(container=container_name, blob=fileName).upload_blob(fileBytes)
             return self.blob_service_client
         except Exception as ex:
