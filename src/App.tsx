@@ -119,6 +119,14 @@ function App() {
     init();
   }, []);
 
+  useEffect(() => {
+    if (showJobModal) {
+      form.setFieldsValue(
+        targetJob || { name: "", description: "", status: "" }
+      );
+    }
+  }, [targetJob, showJobModal, form]);
+
   return (
     <div
       style={{
@@ -191,10 +199,17 @@ function App() {
       >
         <List
           dataSource={jobs}
+          rowKey="RowKey"
           renderItem={(job) => (
             <List.Item
               actions={[
-                <Button type="link" onClick={() => setTargetJob(job)}>
+                <Button
+                  type="link"
+                  onClick={() => {
+                    setTargetJob(job);
+                    setShowJobModal(true);
+                  }}
+                >
                   Edit
                 </Button>,
               ]}
